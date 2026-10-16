@@ -8,9 +8,8 @@ year = today.year
 month = today.month
 
 baseURL = "https://api.msrc.microsoft.com/sug/v2.0/en-US/vulnerability/"
-query = f"?$filter=releaseDate ge {year}-{month:02d}-01T00:00:00Z"
 skip = 0
-url = f"{baseURL}?{query}&offset=0&index=0&$skip={skip}"
+url = f"{baseURL}?&offset=0&index=0&$skip={skip}"
 headers = {
     'Accept': 'application/json',
     
@@ -20,7 +19,6 @@ vulns = []
 try:
     response = requests.get(url, headers=headers)
     releaseNote = response.json()
-    # totalVulns = releaseNote.get("@odata.count")
     vulns.extend(releaseNote.get("value", []))
     counter += len(vulns)
     skip += 500
@@ -28,19 +26,18 @@ try:
     while counter < 3000:
         response = requests.get(url, headers=headers)
         vulns.extend(response.json().get("value", []))
-        print(len(vulns))
         counter += len(vulns)
         skip += 500
         url = f"{baseURL}?{query}&offset=0&index=0&$skip={skip}"
 
-    fields = ["CVE","Title","Severity","Impact","Exploited?","CVSSv3 Score","CVSS Vector","Release Date","Exploitability"]
+    fields = ["CVE","Title","Severity","Impact","Exploited?","CVSSv3 Score","CVSS Vector","Release Date","Exploitability", "Link"]
     with open('output.csv', 'w', newline='') as csvfile:
             csvwriter = csv.writer(csvfile)
             csvwriter.writerow(fields)
             csvfile.close()
     #Leaving in case having a json is relevant. Uncomment below for the script also generate a json file.    
-    with open('data.json', 'w') as file:
-        json.dump(releaseNote, file, indent=4)
+    #with open('data.json', 'w') as file:
+    #    json.dump(releaseNote, file, indent=4)
     
     for vuln in vulns:
         results = []
@@ -57,7 +54,6 @@ try:
             exploitability = vuln.get("exploited", "N/A")
             latest_software_release = vuln.get("latestSoftwareRelease", "N/A")
             
-            #Probably a more elegant way of doing this. Will look into it at a later date
             results.append(cve)
             results.append(title)
             results.append(severity)
@@ -67,8 +63,9 @@ try:
             results.append(cvss_vector)
             results.append(release_date)
             results.append(latest_software_release)
+            results.append(f"https://msrc.microsoft.com/update-guide/vulnerability/{cve}")
 
-            with open('output.csv', 'a', newline='') as csvfile:
+            with open('output.csv', 'a', newline='', encoding='utf-8') as csvfile:
                 csvwriter = csv.writer(csvfile)
                 csvwriter.writerow(results)
 
